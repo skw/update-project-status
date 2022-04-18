@@ -1,0 +1,37 @@
+{
+  "name": "update-project-status",
+  "version": "0.0.0",
+  "description": "",
+  "main": "dist/index.js",
+  "prettier": "@github/prettier-config",
+  "private": true,
+  "dependencies": {
+    "@actions/core": "^1.6.0",
+    "@actions/github": "^5.0.0"
+  },
+  "engines": {
+    "node": ">=16.0.0 <17.0.0",
+    "npm": ">= 7.0.0"
+  },
+  "devDependencies": {
+    "@github/prettier-config": "^0.0.4",
+    "@types/node": "~16.11.26",
+    "@typescript-eslint/parser": "^5.18.0",
+    "@vercel/ncc": "^0.33.3",
+    "concurrently": "^7.1.0",
+    "eslint": "^8.12.0",
+    "eslint-plugin-github": "^4.3.6",
+    "eslint-plugin-prettier": "^4.0.0",
+    "prettier": "2.6.2",
+    "typescript": "^4.6.3"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/skw/update-project-status.git"
+  },
+  "author": "",
+  "license": "MIT"
+}
