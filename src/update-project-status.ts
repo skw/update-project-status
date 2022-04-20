@@ -10,12 +10,20 @@ interface ProjectNodeIDResponse {
   organization?: {
     projectNext: {
       id: string
+      items: {
+        nodes: any[]
+        totalCount: number
+      }
     }
   }
 
   user?: {
     projectNext: {
       id: string
+      items: {
+        nodes: any[]
+        totalCount: number
+      }
     }
   }
 }
@@ -50,6 +58,12 @@ export async function updateProjectStatus(): Promise<void> {
       ${ownerTypeQuery}(login: $ownerName) {
         projectNext(number: $projectNumber) {
           id
+          items(first: 100) {
+            nodes {
+              id
+            }
+            totalCount
+          }
         }
       }
     }`,
@@ -60,8 +74,12 @@ export async function updateProjectStatus(): Promise<void> {
   )
 
   const projectId = idResp[ownerTypeQuery]?.projectNext.id
+  const projectItemIds = idResp[ownerTypeQuery]?.projectNext.items
 
   core.debug(`Project node ID: ${projectId}`)
+
+  console.log('projectId ', projectId)
+  console.log('projectItemIds ', projectItemIds)
 }
 
 export function mustGetOwnerTypeQuery(ownerType?: string): 'organization' | 'user' {
