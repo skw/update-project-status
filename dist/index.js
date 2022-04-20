@@ -93,6 +93,7 @@ function updateProjectStatus() {
     return __awaiter(this, void 0, void 0, function* () {
         const projectUrl = core.getInput('project-url', { required: true });
         const ghToken = core.getInput('github-token', { required: true });
+        const status = core.getInput('status', { required: true }).trim();
         const octokit = github.getOctokit(ghToken);
         const urlMatch = projectUrl.match(urlParse);
         core.debug(`Project URL: ${projectUrl}`);
@@ -146,8 +147,11 @@ function updateProjectStatus() {
         const projectItems = (_g = idResp[ownerTypeQuery]) === null || _g === void 0 ? void 0 : _g.projectNext.items.nodes;
         const statusField = (_h = idResp[ownerTypeQuery]) === null || _h === void 0 ? void 0 : _h.projectNext.fields.nodes.find(field => field.name === 'Status');
         const selectedStatusSetting = statusField
-            ? (_j = JSON.parse(statusField.settings)) === null || _j === void 0 ? void 0 : _j.options.find((o) => o.name === 'Todo')
+            ? (_j = JSON.parse(statusField.settings)) === null || _j === void 0 ? void 0 : _j.options.find((o) => o.name === status)
             : undefined;
+        if (!selectedStatusSetting) {
+            throw new Error(`The selected status "${status}" could not be found for ${projectUrl}`);
+        }
         const formattedItems = projectItems ? formatProjectItemData(projectItems) : [];
         core.debug(`Project node ID: ${projectId}`);
         core.debug(`Project item count: ${projectItemCount}`);

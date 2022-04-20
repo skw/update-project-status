@@ -60,7 +60,7 @@ interface ProjectNodeIDResponse {
 export async function updateProjectStatus(): Promise<void> {
   const projectUrl = core.getInput('project-url', {required: true})
   const ghToken = core.getInput('github-token', {required: true})
-
+  const status = core.getInput('status', {required: true}).trim()
   const octokit = github.getOctokit(ghToken)
   const urlMatch = projectUrl.match(urlParse)
 
@@ -125,8 +125,13 @@ export async function updateProjectStatus(): Promise<void> {
   const projectItems = idResp[ownerTypeQuery]?.projectNext.items.nodes
   const statusField = idResp[ownerTypeQuery]?.projectNext.fields.nodes.find(field => field.name === 'Status')
   const selectedStatusSetting = statusField
-    ? JSON.parse(statusField.settings)?.options.find((o: {id: string; name: string}) => o.name === 'Todo')
+    ? JSON.parse(statusField.settings)?.options.find((o: {id: string; name: string}) => o.name === status)
     : undefined
+
+  if (!selectedStatusSetting) {
+    throw new Error(`The selected status "${status}" could not be found for ${projectUrl}`)
+  }
+
   const formattedItems = projectItems ? formatProjectItemData(projectItems) : []
 
   core.debug(`Project node ID: ${projectId}`)
