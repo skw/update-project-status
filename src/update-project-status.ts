@@ -35,6 +35,8 @@ export async function updateProjectStatus(): Promise<void> {
   const octokit = github.getOctokit(ghToken)
   const urlMatch = projectUrl.match(urlParse)
 
+  core.debug('TESTING DEBUG')
+
   core.debug(`Project URL: ${projectUrl}`)
 
   if (!urlMatch) {
