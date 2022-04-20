@@ -6,12 +6,29 @@ import * as github from '@actions/github'
 const urlParse =
   /^(?:https:\/\/)?github\.com\/(?<ownerType>orgs|users)\/(?<ownerName>[^/]+)\/projects\/(?<projectNumber>\d+)/
 
+interface ProjectNextFieldValue {
+  id: string
+  value: string
+  projectField: {
+    id: string
+    name: string
+  }
+}
+
+interface ProjectNextItem {
+  id: string
+  title: string
+  fieldValues: {
+    nodes: ProjectNextFieldValue[]
+  }
+}
+
 interface ProjectNodeIDResponse {
   organization?: {
     projectNext: {
       id: string
       items: {
-        nodes: any[]
+        nodes: ProjectNextItem[]
         totalCount: number
       }
     }
@@ -21,7 +38,7 @@ interface ProjectNodeIDResponse {
     projectNext: {
       id: string
       items: {
-        nodes: any[]
+        nodes: ProjectNextItem[]
         totalCount: number
       }
     }
@@ -34,8 +51,6 @@ export async function updateProjectStatus(): Promise<void> {
 
   const octokit = github.getOctokit(ghToken)
   const urlMatch = projectUrl.match(urlParse)
-
-  core.debug('TESTING DEBUG')
 
   core.debug(`Project URL: ${projectUrl}`)
 
@@ -60,9 +75,20 @@ export async function updateProjectStatus(): Promise<void> {
       ${ownerTypeQuery}(login: $ownerName) {
         projectNext(number: $projectNumber) {
           id
-          items(first: 100) {
+          items(first: 1000) {
             nodes {
               id
+              fieldValues(first: 100) {
+                nodes {
+                  id
+                  value
+                  projectField {
+                    id
+                    name
+                  }
+                }
+                totalCount
+              }
             }
             totalCount
           }
@@ -77,10 +103,12 @@ export async function updateProjectStatus(): Promise<void> {
 
   const projectId = idResp[ownerTypeQuery]?.projectNext.id
   const projectItemCount = idResp[ownerTypeQuery]?.projectNext.items.totalCount
-  const projectItemIds = idResp[ownerTypeQuery]?.projectNext.items.nodes
-  core.debug(`Project item count: ${projectItemCount}`)
-  core.debug(`Project item IDs: ${JSON.stringify(projectItemIds)}`)
+  const projectItems = idResp[ownerTypeQuery]?.projectNext.items.nodes
+  const formatted = projectItems ? formatProjectItemData(projectItems) : []
+
   core.debug(`Project node ID: ${projectId}`)
+  core.debug(`Project item count: ${projectItemCount}`)
+  core.debug(`Project item IDs: ${JSON.stringify(formatted)}`)
 }
 
 export function mustGetOwnerTypeQuery(ownerType?: string): 'organization' | 'user' {
@@ -91,4 +119,21 @@ export function mustGetOwnerTypeQuery(ownerType?: string): 'organization' | 'use
   }
 
   return ownerTypeQuery
+}
+
+function formatProjectItemData(projectItems: ProjectNextItem[]) {
+  const formattedData = []
+
+  for (const projectItem of projectItems) {
+    const status = projectItem.fieldValues.nodes.find(fieldValue => fieldValue.projectField.name === 'Status')
+
+    if (status) {
+      formattedData.push({
+        id: projectItem.id,
+        status
+      })
+    }
+  }
+
+  return formattedData
 }

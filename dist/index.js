@@ -95,7 +95,6 @@ function updateProjectStatus() {
         const ghToken = core.getInput('github-token', { required: true });
         const octokit = github.getOctokit(ghToken);
         const urlMatch = projectUrl.match(urlParse);
-        core.debug('TESTING DEBUG');
         core.debug(`Project URL: ${projectUrl}`);
         if (!urlMatch) {
             throw new Error(`Invalid project URL: ${projectUrl}. Project URL should match the format https://github.com/<orgs-or-users>/<ownerName>/projects/<projectNumber>`);
@@ -112,9 +111,20 @@ function updateProjectStatus() {
       ${ownerTypeQuery}(login: $ownerName) {
         projectNext(number: $projectNumber) {
           id
-          items(first: 100) {
+          items(first: 1000) {
             nodes {
               id
+              fieldValues(first: 100) {
+                nodes {
+                  id
+                  value
+                  projectField {
+                    id
+                    name
+                  }
+                }
+                totalCount
+              }
             }
             totalCount
           }
@@ -126,10 +136,11 @@ function updateProjectStatus() {
         });
         const projectId = (_e = idResp[ownerTypeQuery]) === null || _e === void 0 ? void 0 : _e.projectNext.id;
         const projectItemCount = (_f = idResp[ownerTypeQuery]) === null || _f === void 0 ? void 0 : _f.projectNext.items.totalCount;
-        const projectItemIds = (_g = idResp[ownerTypeQuery]) === null || _g === void 0 ? void 0 : _g.projectNext.items.nodes;
-        core.debug(`Project item count: ${projectItemCount}`);
-        core.debug(`Project item IDs: ${JSON.stringify(projectItemIds)}`);
+        const projectItems = (_g = idResp[ownerTypeQuery]) === null || _g === void 0 ? void 0 : _g.projectNext.items.nodes;
+        const formatted = projectItems ? formatProjectItemData(projectItems) : [];
         core.debug(`Project node ID: ${projectId}`);
+        core.debug(`Project item count: ${projectItemCount}`);
+        core.debug(`Project item IDs: ${JSON.stringify(formatted)}`);
     });
 }
 exports.updateProjectStatus = updateProjectStatus;
@@ -141,6 +152,19 @@ function mustGetOwnerTypeQuery(ownerType) {
     return ownerTypeQuery;
 }
 exports.mustGetOwnerTypeQuery = mustGetOwnerTypeQuery;
+function formatProjectItemData(projectItems) {
+    const formattedData = [];
+    for (const projectItem of projectItems) {
+        const status = projectItem.fieldValues.nodes.find(fieldValue => fieldValue.projectField.name === 'Status');
+        if (status) {
+            formattedData.push({
+                id: projectItem.id,
+                status
+            });
+        }
+    }
+    return formattedData;
+}
 
 
 /***/ }),
