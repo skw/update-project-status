@@ -89,12 +89,13 @@ const github = __importStar(__nccwpck_require__(5438));
 // https://github.com/orgs|users/<ownerName>/projects/<projectNumber>
 const urlParse = /^(?:https:\/\/)?github\.com\/(?<ownerType>orgs|users)\/(?<ownerName>[^/]+)\/projects\/(?<projectNumber>\d+)/;
 function updateProjectStatus() {
-    var _a, _b, _c, _d, _e;
+    var _a, _b, _c, _d, _e, _f, _g;
     return __awaiter(this, void 0, void 0, function* () {
         const projectUrl = core.getInput('project-url', { required: true });
         const ghToken = core.getInput('github-token', { required: true });
         const octokit = github.getOctokit(ghToken);
         const urlMatch = projectUrl.match(urlParse);
+        core.debug('TESTING DEBUG');
         core.debug(`Project URL: ${projectUrl}`);
         if (!urlMatch) {
             throw new Error(`Invalid project URL: ${projectUrl}. Project URL should match the format https://github.com/<orgs-or-users>/<ownerName>/projects/<projectNumber>`);
@@ -111,6 +112,12 @@ function updateProjectStatus() {
       ${ownerTypeQuery}(login: $ownerName) {
         projectNext(number: $projectNumber) {
           id
+          items(first: 100) {
+            nodes {
+              id
+            }
+            totalCount
+          }
         }
       }
     }`, {
@@ -118,6 +125,10 @@ function updateProjectStatus() {
             projectNumber
         });
         const projectId = (_e = idResp[ownerTypeQuery]) === null || _e === void 0 ? void 0 : _e.projectNext.id;
+        const projectItemCount = (_f = idResp[ownerTypeQuery]) === null || _f === void 0 ? void 0 : _f.projectNext.items.totalCount;
+        const projectItemIds = (_g = idResp[ownerTypeQuery]) === null || _g === void 0 ? void 0 : _g.projectNext.items.nodes;
+        core.debug(`Project item count: ${projectItemCount}`);
+        core.debug(`Project item IDs: ${JSON.stringify(projectItemIds)}`);
         core.debug(`Project node ID: ${projectId}`);
     });
 }
