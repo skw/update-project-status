@@ -15,6 +15,12 @@ interface ProjectNextFieldValue {
   }
 }
 
+interface ProjectNextField {
+  id: string
+  name: string
+  settings: string
+}
+
 interface ProjectNextItem {
   id: string
   title: string
@@ -27,6 +33,9 @@ interface ProjectNodeIDResponse {
   organization?: {
     projectNext: {
       id: string
+      fields: {
+        nodes: ProjectNextField[]
+      }
       items: {
         nodes: ProjectNextItem[]
         totalCount: number
@@ -37,6 +46,9 @@ interface ProjectNodeIDResponse {
   user?: {
     projectNext: {
       id: string
+      fields: {
+        nodes: ProjectNextField[]
+      }
       items: {
         nodes: ProjectNextItem[]
         totalCount: number
@@ -69,12 +81,19 @@ export async function updateProjectStatus(): Promise<void> {
   core.debug(`Project number: ${projectNumber}`)
   core.debug(`Owner type: ${ownerType}`)
 
-  // First, use the GraphQL API to request the project's node ID.
+  // Get memex project id and items
   const idResp = await octokit.graphql<ProjectNodeIDResponse>(
     `query getProject($ownerName: String!, $projectNumber: Int!) { 
       ${ownerTypeQuery}(login: $ownerName) {
         projectNext(number: $projectNumber) {
           id
+          fields(first: 50) {
+            nodes {
+              id
+              name
+              settings
+            }
+          }
           items(first: 100) {
             nodes {
               id
@@ -104,11 +123,16 @@ export async function updateProjectStatus(): Promise<void> {
   const projectId = idResp[ownerTypeQuery]?.projectNext.id
   const projectItemCount = idResp[ownerTypeQuery]?.projectNext.items.totalCount
   const projectItems = idResp[ownerTypeQuery]?.projectNext.items.nodes
-  const formatted = projectItems ? formatProjectItemData(projectItems) : []
+  const statusField = idResp[ownerTypeQuery]?.projectNext.fields.nodes.find(field => field.name === 'Status')
+  const selectedStatusSetting = statusField
+    ? JSON.parse(statusField.settings)?.options.find((o: {id: string; name: string}) => o.name === 'To Do')
+    : undefined
+  const formattedItems = projectItems ? formatProjectItemData(projectItems) : []
 
   core.debug(`Project node ID: ${projectId}`)
   core.debug(`Project item count: ${projectItemCount}`)
-  core.debug(`Project item IDs: ${JSON.stringify(formatted)}`)
+  core.debug(`Project item IDs: ${JSON.stringify(formattedItems)}`)
+  core.debug(`selectedStatusSetting: ${JSON.stringify(selectedStatusSetting)}`)
 }
 
 export function mustGetOwnerTypeQuery(ownerType?: string): 'organization' | 'user' {

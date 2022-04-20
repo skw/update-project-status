@@ -89,7 +89,7 @@ const github = __importStar(__nccwpck_require__(5438));
 // https://github.com/orgs|users/<ownerName>/projects/<projectNumber>
 const urlParse = /^(?:https:\/\/)?github\.com\/(?<ownerType>orgs|users)\/(?<ownerName>[^/]+)\/projects\/(?<projectNumber>\d+)/;
 function updateProjectStatus() {
-    var _a, _b, _c, _d, _e, _f, _g;
+    var _a, _b, _c, _d, _e, _f, _g, _h, _j;
     return __awaiter(this, void 0, void 0, function* () {
         const projectUrl = core.getInput('project-url', { required: true });
         const ghToken = core.getInput('github-token', { required: true });
@@ -106,11 +106,18 @@ function updateProjectStatus() {
         core.debug(`Org name: ${ownerName}`);
         core.debug(`Project number: ${projectNumber}`);
         core.debug(`Owner type: ${ownerType}`);
-        // First, use the GraphQL API to request the project's node ID.
+        // Get memex project id and items
         const idResp = yield octokit.graphql(`query getProject($ownerName: String!, $projectNumber: Int!) { 
       ${ownerTypeQuery}(login: $ownerName) {
         projectNext(number: $projectNumber) {
           id
+          fields(first: 50) {
+            nodes {
+              id
+              name
+              settings
+            }
+          }
           items(first: 100) {
             nodes {
               id
@@ -137,10 +144,15 @@ function updateProjectStatus() {
         const projectId = (_e = idResp[ownerTypeQuery]) === null || _e === void 0 ? void 0 : _e.projectNext.id;
         const projectItemCount = (_f = idResp[ownerTypeQuery]) === null || _f === void 0 ? void 0 : _f.projectNext.items.totalCount;
         const projectItems = (_g = idResp[ownerTypeQuery]) === null || _g === void 0 ? void 0 : _g.projectNext.items.nodes;
-        const formatted = projectItems ? formatProjectItemData(projectItems) : [];
+        const statusField = (_h = idResp[ownerTypeQuery]) === null || _h === void 0 ? void 0 : _h.projectNext.fields.nodes.find(field => field.name === 'Status');
+        const selectedStatusSetting = statusField
+            ? (_j = JSON.parse(statusField.settings)) === null || _j === void 0 ? void 0 : _j.options.find((o) => o.name === 'To Do')
+            : undefined;
+        const formattedItems = projectItems ? formatProjectItemData(projectItems) : [];
         core.debug(`Project node ID: ${projectId}`);
         core.debug(`Project item count: ${projectItemCount}`);
-        core.debug(`Project item IDs: ${JSON.stringify(formatted)}`);
+        core.debug(`Project item IDs: ${JSON.stringify(formattedItems)}`);
+        core.debug(`selectedStatusSetting: ${JSON.stringify(selectedStatusSetting)}`);
     });
 }
 exports.updateProjectStatus = updateProjectStatus;
