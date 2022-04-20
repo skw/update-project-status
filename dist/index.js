@@ -127,7 +127,6 @@ function updateProjectStatus() {
                   id
                   value
                   projectField {
-                    id
                     name
                   }
                 }
@@ -152,11 +151,12 @@ function updateProjectStatus() {
         if (!selectedStatusSetting) {
             throw new Error(`The selected status "${status}" could not be found for ${projectUrl}`);
         }
-        const formattedItems = projectItems ? formatProjectItemData(projectItems) : [];
+        const itemsToUpdate = projectItems
+            ? formatProjectItemsToUpdate({ selectedStatusId: selectedStatusSetting.id, projectItems })
+            : [];
         core.debug(`Project node ID: ${projectId}`);
         core.debug(`Project item count: ${projectItemCount}`);
-        core.debug(`Project item IDs: ${JSON.stringify(formattedItems)}`);
-        core.debug(`statusField: ${JSON.stringify(statusField)}`);
+        core.debug(`Project item IDs: ${JSON.stringify(itemsToUpdate)}`);
         core.debug(`selectedStatusSetting: ${JSON.stringify(selectedStatusSetting)}`);
     });
 }
@@ -169,14 +169,13 @@ function mustGetOwnerTypeQuery(ownerType) {
     return ownerTypeQuery;
 }
 exports.mustGetOwnerTypeQuery = mustGetOwnerTypeQuery;
-function formatProjectItemData(projectItems) {
+function formatProjectItemsToUpdate({ projectItems, selectedStatusId }) {
     const formattedData = [];
     for (const projectItem of projectItems) {
         const statusFieldValue = projectItem.fieldValues.nodes.find(fieldValue => fieldValue.projectField.name === 'Status');
-        if (statusFieldValue) {
+        if (statusFieldValue && (statusFieldValue === null || statusFieldValue === void 0 ? void 0 : statusFieldValue.value) !== selectedStatusId) {
             formattedData.push({
                 id: projectItem.id,
-                statusId: statusFieldValue === null || statusFieldValue === void 0 ? void 0 : statusFieldValue.projectField.id,
                 statusValue: statusFieldValue === null || statusFieldValue === void 0 ? void 0 : statusFieldValue.value
             });
         }

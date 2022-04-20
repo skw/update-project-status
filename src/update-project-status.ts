@@ -10,7 +10,6 @@ interface ProjectNextFieldValue {
   id: string
   value: string
   projectField: {
-    id: string
     name: string
   }
 }
@@ -102,7 +101,6 @@ export async function updateProjectStatus(): Promise<void> {
                   id
                   value
                   projectField {
-                    id
                     name
                   }
                 }
@@ -132,12 +130,13 @@ export async function updateProjectStatus(): Promise<void> {
     throw new Error(`The selected status "${status}" could not be found for ${projectUrl}`)
   }
 
-  const formattedItems = projectItems ? formatProjectItemData(projectItems) : []
+  const itemsToUpdate = projectItems
+    ? formatProjectItemsToUpdate({selectedStatusId: selectedStatusSetting.id, projectItems})
+    : []
 
   core.debug(`Project node ID: ${projectId}`)
   core.debug(`Project item count: ${projectItemCount}`)
-  core.debug(`Project item IDs: ${JSON.stringify(formattedItems)}`)
-  core.debug(`statusField: ${JSON.stringify(statusField)}`)
+  core.debug(`Project item IDs: ${JSON.stringify(itemsToUpdate)}`)
   core.debug(`selectedStatusSetting: ${JSON.stringify(selectedStatusSetting)}`)
 }
 
@@ -151,16 +150,21 @@ export function mustGetOwnerTypeQuery(ownerType?: string): 'organization' | 'use
   return ownerTypeQuery
 }
 
-function formatProjectItemData(projectItems: ProjectNextItem[]) {
+function formatProjectItemsToUpdate({
+  projectItems,
+  selectedStatusId
+}: {
+  projectItems: ProjectNextItem[]
+  selectedStatusId: string
+}) {
   const formattedData = []
 
   for (const projectItem of projectItems) {
     const statusFieldValue = projectItem.fieldValues.nodes.find(fieldValue => fieldValue.projectField.name === 'Status')
 
-    if (statusFieldValue) {
+    if (statusFieldValue && statusFieldValue?.value !== selectedStatusId) {
       formattedData.push({
         id: projectItem.id,
-        statusId: statusFieldValue?.projectField.id,
         statusValue: statusFieldValue?.value
       })
     }
