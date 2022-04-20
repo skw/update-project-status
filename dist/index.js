@@ -152,6 +152,7 @@ function updateProjectStatus() {
         core.debug(`Project node ID: ${projectId}`);
         core.debug(`Project item count: ${projectItemCount}`);
         core.debug(`Project item IDs: ${JSON.stringify(formattedItems)}`);
+        core.debug(`statusField: ${JSON.stringify(statusField)}`);
         core.debug(`selectedStatusSetting: ${JSON.stringify(selectedStatusSetting)}`);
     });
 }
