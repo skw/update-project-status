@@ -148,7 +148,7 @@ function updateProjectStatus() {
         const selectedStatusSetting = statusField
             ? (_j = JSON.parse(statusField.settings)) === null || _j === void 0 ? void 0 : _j.options.find((o) => o.name === status)
             : undefined;
-        if (!selectedStatusSetting) {
+        if (!selectedStatusSetting || !statusField) {
             throw new Error(`The selected status "${status}" could not be found for ${projectUrl}`);
         }
         const itemsToUpdate = projectItems
@@ -156,8 +156,25 @@ function updateProjectStatus() {
             : [];
         core.debug(`Project node ID: ${projectId}`);
         core.debug(`Project item count: ${projectItemCount}`);
-        core.debug(`Project item IDs: ${JSON.stringify(itemsToUpdate)}`);
+        core.debug(`Project itemsToUpdate: ${JSON.stringify(itemsToUpdate)}`);
         core.debug(`selectedStatusSetting: ${JSON.stringify(selectedStatusSetting)}`);
+        for (const itemToUpdate of itemsToUpdate) {
+            yield octokit.graphql(`mutation updateProjectNextItemField($input: UpdateProjectNextItemFieldInput!) {
+        updateProjectNextItemField(input: $input) {
+          projectNextItem {
+            id
+          }
+        }
+      }`, {
+                input: {
+                    projectId,
+                    itemId: itemToUpdate.id,
+                    fieldId: statusField.id,
+                    value: selectedStatusSetting.id
+                }
+            });
+            core.debug(`${itemToUpdate.id} set to ${selectedStatusSetting}`);
+        }
     });
 }
 exports.updateProjectStatus = updateProjectStatus;

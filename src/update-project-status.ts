@@ -56,6 +56,14 @@ interface ProjectNodeIDResponse {
   }
 }
 
+interface UpdateProjectNextItemFieldResponse {
+  updateProjectNextItemField: {
+    projectNextItem: {
+      id: string
+    }
+  }
+}
+
 export async function updateProjectStatus(): Promise<void> {
   const projectUrl = core.getInput('project-url', {required: true})
   const ghToken = core.getInput('github-token', {required: true})
@@ -126,7 +134,7 @@ export async function updateProjectStatus(): Promise<void> {
     ? JSON.parse(statusField.settings)?.options.find((o: {id: string; name: string}) => o.name === status)
     : undefined
 
-  if (!selectedStatusSetting) {
+  if (!selectedStatusSetting || !statusField) {
     throw new Error(`The selected status "${status}" could not be found for ${projectUrl}`)
   }
 
@@ -136,8 +144,30 @@ export async function updateProjectStatus(): Promise<void> {
 
   core.debug(`Project node ID: ${projectId}`)
   core.debug(`Project item count: ${projectItemCount}`)
-  core.debug(`Project item IDs: ${JSON.stringify(itemsToUpdate)}`)
+  core.debug(`Project itemsToUpdate: ${JSON.stringify(itemsToUpdate)}`)
   core.debug(`selectedStatusSetting: ${JSON.stringify(selectedStatusSetting)}`)
+
+  for (const itemToUpdate of itemsToUpdate) {
+    await octokit.graphql<UpdateProjectNextItemFieldResponse>(
+      `mutation updateProjectNextItemField($input: UpdateProjectNextItemFieldInput!) {
+        updateProjectNextItemField(input: $input) {
+          projectNextItem {
+            id
+          }
+        }
+      }`,
+      {
+        input: {
+          projectId,
+          itemId: itemToUpdate.id,
+          fieldId: statusField.id,
+          value: selectedStatusSetting.id
+        }
+      }
+    )
+
+    core.debug(`${itemToUpdate.id} set to ${selectedStatusSetting}`)
+  }
 }
 
 export function mustGetOwnerTypeQuery(ownerType?: string): 'organization' | 'user' {
