@@ -76,10 +76,9 @@ export async function updateProjectStatus(): Promise<void> {
   const projectId = idResp[ownerTypeQuery]?.projectNext.id
   const projectItemCount = idResp[ownerTypeQuery]?.projectNext.items.totalCount
   const projectItemIds = idResp[ownerTypeQuery]?.projectNext.items.nodes
-
-  core.debug(`Project node ID: ${projectId}`)
   core.debug(`Project item count: ${projectItemCount}`)
   core.debug(`Project item IDs: ${JSON.stringify(projectItemIds)}`)
+  core.debug(`Project node ID: ${projectId}`)
 }
 
 export function mustGetOwnerTypeQuery(ownerType?: string): 'organization' | 'user' {
