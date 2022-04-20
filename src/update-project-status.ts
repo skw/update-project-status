@@ -125,12 +125,12 @@ function formatProjectItemData(projectItems: ProjectNextItem[]) {
   const formattedData = []
 
   for (const projectItem of projectItems) {
-    const status = projectItem.fieldValues.nodes.find(fieldValue => fieldValue.projectField.name === 'Status')
+    const statusFieldValue = projectItem.fieldValues.nodes.find(fieldValue => fieldValue.projectField.name === 'Status')
 
-    if (status) {
+    if (statusFieldValue) {
       formattedData.push({
         id: projectItem.id,
-        status
+        status: statusFieldValue?.projectField.id
       })
     }
   }

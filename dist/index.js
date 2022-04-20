@@ -155,11 +155,11 @@ exports.mustGetOwnerTypeQuery = mustGetOwnerTypeQuery;
 function formatProjectItemData(projectItems) {
     const formattedData = [];
     for (const projectItem of projectItems) {
-        const status = projectItem.fieldValues.nodes.find(fieldValue => fieldValue.projectField.name === 'Status');
-        if (status) {
+        const statusFieldValue = projectItem.fieldValues.nodes.find(fieldValue => fieldValue.projectField.name === 'Status');
+        if (statusFieldValue) {
             formattedData.push({
                 id: projectItem.id,
-                status
+                status: statusFieldValue === null || statusFieldValue === void 0 ? void 0 : statusFieldValue.projectField.id
             });
         }
     }
