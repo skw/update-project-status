@@ -111,10 +111,10 @@ function updateProjectStatus() {
       ${ownerTypeQuery}(login: $ownerName) {
         projectNext(number: $projectNumber) {
           id
-          items(first: 1000) {
+          items(first: 100) {
             nodes {
               id
-              fieldValues(first: 100) {
+              fieldValues(first: 50) {
                 nodes {
                   id
                   value
