@@ -159,7 +159,8 @@ function formatProjectItemData(projectItems) {
         if (statusFieldValue) {
             formattedData.push({
                 id: projectItem.id,
-                status: statusFieldValue === null || statusFieldValue === void 0 ? void 0 : statusFieldValue.projectField.id
+                statusId: statusFieldValue === null || statusFieldValue === void 0 ? void 0 : statusFieldValue.projectField.id,
+                statusValue: statusFieldValue === null || statusFieldValue === void 0 ? void 0 : statusFieldValue.value
             });
         }
     }

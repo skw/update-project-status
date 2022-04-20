@@ -130,7 +130,8 @@ function formatProjectItemData(projectItems: ProjectNextItem[]) {
     if (statusFieldValue) {
       formattedData.push({
         id: projectItem.id,
-        status: statusFieldValue?.projectField.id
+        statusId: statusFieldValue?.projectField.id,
+        statusValue: statusFieldValue?.value
       })
     }
   }
