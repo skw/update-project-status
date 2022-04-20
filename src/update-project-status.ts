@@ -125,7 +125,7 @@ export async function updateProjectStatus(): Promise<void> {
   const projectItems = idResp[ownerTypeQuery]?.projectNext.items.nodes
   const statusField = idResp[ownerTypeQuery]?.projectNext.fields.nodes.find(field => field.name === 'Status')
   const selectedStatusSetting = statusField
-    ? JSON.parse(statusField.settings)?.options.find((o: {id: string; name: string}) => o.name === 'To Do')
+    ? JSON.parse(statusField.settings)?.options.find((o: {id: string; name: string}) => o.name === 'Todo')
     : undefined
   const formattedItems = projectItems ? formatProjectItemData(projectItems) : []
 

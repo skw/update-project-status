@@ -146,7 +146,7 @@ function updateProjectStatus() {
         const projectItems = (_g = idResp[ownerTypeQuery]) === null || _g === void 0 ? void 0 : _g.projectNext.items.nodes;
         const statusField = (_h = idResp[ownerTypeQuery]) === null || _h === void 0 ? void 0 : _h.projectNext.fields.nodes.find(field => field.name === 'Status');
         const selectedStatusSetting = statusField
-            ? (_j = JSON.parse(statusField.settings)) === null || _j === void 0 ? void 0 : _j.options.find((o) => o.name === 'To Do')
+            ? (_j = JSON.parse(statusField.settings)) === null || _j === void 0 ? void 0 : _j.options.find((o) => o.name === 'Todo')
             : undefined;
         const formattedItems = projectItems ? formatProjectItemData(projectItems) : [];
         core.debug(`Project node ID: ${projectId}`);
