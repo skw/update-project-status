@@ -224,8 +224,8 @@ function projectItemsToUpdate({
 
   for (const projectItem of projectItems) {
     const statusFieldValue = projectItem.fieldValues.nodes.find(fieldValue => fieldValue.projectField.name === 'Status')
-    const labels = projectItem.content?.nodes.map(l => l.name)
-    const includesLabel = labeled.length > 0 ? labels.some(l => labeled.includes(l)) : true
+    const labels = projectItem.content?.nodes?.map(l => l.name)
+    const includesLabel = labeled.length > 0 && labels.length > 0 ? labels.some(l => labeled.includes(l)) : true
 
     if (includesLabel && statusFieldValue && statusFieldValue?.value !== selectedStatusId) {
       formattedData.push({
