@@ -112,6 +112,7 @@ function updateProjectStatus() {
         core.debug(`Org name: ${ownerName}`);
         core.debug(`Project number: ${projectNumber}`);
         core.debug(`Owner type: ${ownerType}`);
+        core.debug(`labeled: ${JSON.stringify(labeled)}`);
         // Get memex project id and items
         const idResp = yield octokit.graphql(`query getProject($ownerName: String!, $projectNumber: Int!) { 
       ${ownerTypeQuery}(login: $ownerName) {
@@ -173,7 +174,6 @@ function updateProjectStatus() {
         core.debug(`Project item count: ${projectItemCount}`);
         core.debug(`Project itemsToUpdate: ${JSON.stringify(itemsToUpdate)}`);
         core.debug(`selectedStatusSetting: ${JSON.stringify(selectedStatusSetting)}`);
-        core.debug(`labeled: ${JSON.stringify(labeled)}`);
         if (itemsToUpdate.length > 0) {
             core.debug(`${itemsToUpdate.length} item(s) selected for status update`);
         }
@@ -214,7 +214,7 @@ function projectItemsToUpdate({ projectItems, selectedStatusId, labeled }) {
     const formattedData = [];
     for (const projectItem of projectItems) {
         const statusFieldValue = projectItem.fieldValues.nodes.find(fieldValue => fieldValue.projectField.name === 'Status');
-        const labels = (_b = (_a = projectItem.content) === null || _a === void 0 ? void 0 : _a.nodes) === null || _b === void 0 ? void 0 : _b.map(l => l.name);
+        const labels = projectItem.content ? (_b = (_a = projectItem.content) === null || _a === void 0 ? void 0 : _a.nodes) === null || _b === void 0 ? void 0 : _b.map(l => l.name) : [];
         const includesLabel = labeled.length > 0 && labels.length > 0 ? labels.some(l => labeled.includes(l)) : true;
         if (includesLabel && statusFieldValue && (statusFieldValue === null || statusFieldValue === void 0 ? void 0 : statusFieldValue.value) !== selectedStatusId) {
             formattedData.push({

@@ -100,6 +100,7 @@ export async function updateProjectStatus(): Promise<void> {
   core.debug(`Org name: ${ownerName}`)
   core.debug(`Project number: ${projectNumber}`)
   core.debug(`Owner type: ${ownerType}`)
+  core.debug(`labeled: ${JSON.stringify(labeled)}`)
 
   // Get memex project id and items
   const idResp = await octokit.graphql<ProjectNodeIDResponse>(
@@ -169,7 +170,6 @@ export async function updateProjectStatus(): Promise<void> {
   core.debug(`Project item count: ${projectItemCount}`)
   core.debug(`Project itemsToUpdate: ${JSON.stringify(itemsToUpdate)}`)
   core.debug(`selectedStatusSetting: ${JSON.stringify(selectedStatusSetting)}`)
-  core.debug(`labeled: ${JSON.stringify(labeled)}`)
 
   if (itemsToUpdate.length > 0) {
     core.debug(`${itemsToUpdate.length} item(s) selected for status update`)
@@ -224,7 +224,7 @@ function projectItemsToUpdate({
 
   for (const projectItem of projectItems) {
     const statusFieldValue = projectItem.fieldValues.nodes.find(fieldValue => fieldValue.projectField.name === 'Status')
-    const labels = projectItem.content?.nodes?.map(l => l.name)
+    const labels = projectItem.content ? projectItem.content?.nodes?.map(l => l.name) : []
     const includesLabel = labeled.length > 0 && labels.length > 0 ? labels.some(l => labeled.includes(l)) : true
 
     if (includesLabel && statusFieldValue && statusFieldValue?.value !== selectedStatusId) {
