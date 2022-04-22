@@ -89,10 +89,15 @@ const github = __importStar(__nccwpck_require__(5438));
 // https://github.com/orgs|users/<ownerName>/projects/<projectNumber>
 const urlParse = /^(?:https:\/\/)?github\.com\/(?<ownerType>orgs|users)\/(?<ownerName>[^/]+)\/projects\/(?<projectNumber>\d+)/;
 function updateProjectStatus() {
-    var _a, _b, _c, _d, _e, _f, _g, _h, _j;
+    var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k;
     return __awaiter(this, void 0, void 0, function* () {
         const projectUrl = core.getInput('project-url', { required: true });
         const ghToken = core.getInput('github-token', { required: true });
+        const labeled = (_a = core
+            .getInput('labeled')
+            .split(',')
+            .map(l => l.trim())
+            .filter(l => l.length > 0)) !== null && _a !== void 0 ? _a : [];
         const status = core.getInput('status', { required: true }).trim();
         const octokit = github.getOctokit(ghToken);
         const urlMatch = projectUrl.match(urlParse);
@@ -100,9 +105,9 @@ function updateProjectStatus() {
         if (!urlMatch) {
             throw new Error(`Invalid project URL: ${projectUrl}. Project URL should match the format https://github.com/<orgs-or-users>/<ownerName>/projects/<projectNumber>`);
         }
-        const ownerName = (_a = urlMatch.groups) === null || _a === void 0 ? void 0 : _a.ownerName;
-        const projectNumber = parseInt((_c = (_b = urlMatch.groups) === null || _b === void 0 ? void 0 : _b.projectNumber) !== null && _c !== void 0 ? _c : '', 10);
-        const ownerType = (_d = urlMatch.groups) === null || _d === void 0 ? void 0 : _d.ownerType;
+        const ownerName = (_b = urlMatch.groups) === null || _b === void 0 ? void 0 : _b.ownerName;
+        const projectNumber = parseInt((_d = (_c = urlMatch.groups) === null || _c === void 0 ? void 0 : _c.projectNumber) !== null && _d !== void 0 ? _d : '', 10);
+        const ownerType = (_e = urlMatch.groups) === null || _e === void 0 ? void 0 : _e.ownerType;
         const ownerTypeQuery = mustGetOwnerTypeQuery(ownerType);
         core.debug(`Org name: ${ownerName}`);
         core.debug(`Project number: ${projectNumber}`);
@@ -122,6 +127,16 @@ function updateProjectStatus() {
           items(first: 100) {
             nodes {
               id
+              content {
+                ... on Issue {
+                  labels(first: 50) {
+                    nodes {
+                      name
+                    }
+                  }
+
+                }
+              }
               fieldValues(first: 50) {
                 nodes {
                   id
@@ -141,23 +156,31 @@ function updateProjectStatus() {
             ownerName,
             projectNumber
         });
-        const projectId = (_e = idResp[ownerTypeQuery]) === null || _e === void 0 ? void 0 : _e.projectNext.id;
-        const projectItemCount = (_f = idResp[ownerTypeQuery]) === null || _f === void 0 ? void 0 : _f.projectNext.items.totalCount;
-        const projectItems = (_g = idResp[ownerTypeQuery]) === null || _g === void 0 ? void 0 : _g.projectNext.items.nodes;
-        const statusField = (_h = idResp[ownerTypeQuery]) === null || _h === void 0 ? void 0 : _h.projectNext.fields.nodes.find(field => field.name === 'Status');
+        const projectId = (_f = idResp[ownerTypeQuery]) === null || _f === void 0 ? void 0 : _f.projectNext.id;
+        const projectItemCount = (_g = idResp[ownerTypeQuery]) === null || _g === void 0 ? void 0 : _g.projectNext.items.totalCount;
+        const projectItems = (_h = idResp[ownerTypeQuery]) === null || _h === void 0 ? void 0 : _h.projectNext.items.nodes;
+        const statusField = (_j = idResp[ownerTypeQuery]) === null || _j === void 0 ? void 0 : _j.projectNext.fields.nodes.find(field => field.name === 'Status');
         const selectedStatusSetting = statusField
-            ? (_j = JSON.parse(statusField.settings)) === null || _j === void 0 ? void 0 : _j.options.find((o) => o.name === status)
+            ? (_k = JSON.parse(statusField.settings)) === null || _k === void 0 ? void 0 : _k.options.find((o) => o.name === status)
             : undefined;
         if (!selectedStatusSetting || !statusField) {
             throw new Error(`The selected status "${status}" could not be found for ${projectUrl}`);
         }
         const itemsToUpdate = projectItems
-            ? formatProjectItemsToUpdate({ selectedStatusId: selectedStatusSetting.id, projectItems })
+            ? projectItemsToUpdate({ selectedStatusId: selectedStatusSetting.id, projectItems, labeled })
             : [];
         core.debug(`Project node ID: ${projectId}`);
         core.debug(`Project item count: ${projectItemCount}`);
         core.debug(`Project itemsToUpdate: ${JSON.stringify(itemsToUpdate)}`);
         core.debug(`selectedStatusSetting: ${JSON.stringify(selectedStatusSetting)}`);
+        core.debug(`labeled: ${JSON.stringify(labeled)}`);
+        if (itemsToUpdate.length > 0) {
+            core.debug(`${itemsToUpdate.length} item(s) selected for status update`);
+        }
+        else {
+            core.debug(`No items selected for status update`);
+            return;
+        }
         for (const itemToUpdate of itemsToUpdate) {
             yield octokit.graphql(`mutation updateProjectNextItemField($input: UpdateProjectNextItemFieldInput!) {
         updateProjectNextItemField(input: $input) {
@@ -173,7 +196,7 @@ function updateProjectStatus() {
                     value: selectedStatusSetting.id
                 }
             });
-            core.debug(`${itemToUpdate.id} set to ${selectedStatusSetting}`);
+            core.debug(`${itemToUpdate.id} set to ${selectedStatusSetting.name}`);
         }
     });
 }
@@ -186,11 +209,14 @@ function mustGetOwnerTypeQuery(ownerType) {
     return ownerTypeQuery;
 }
 exports.mustGetOwnerTypeQuery = mustGetOwnerTypeQuery;
-function formatProjectItemsToUpdate({ projectItems, selectedStatusId }) {
+function projectItemsToUpdate({ projectItems, selectedStatusId, labeled }) {
+    var _a;
     const formattedData = [];
     for (const projectItem of projectItems) {
         const statusFieldValue = projectItem.fieldValues.nodes.find(fieldValue => fieldValue.projectField.name === 'Status');
-        if (statusFieldValue && (statusFieldValue === null || statusFieldValue === void 0 ? void 0 : statusFieldValue.value) !== selectedStatusId) {
+        const labels = (_a = projectItem.content) === null || _a === void 0 ? void 0 : _a.nodes.map(l => l.name);
+        const includesLabel = labeled.length > 0 ? labels.some(l => labeled.includes(l)) : true;
+        if (includesLabel && statusFieldValue && (statusFieldValue === null || statusFieldValue === void 0 ? void 0 : statusFieldValue.value) !== selectedStatusId) {
             formattedData.push({
                 id: projectItem.id,
                 statusValue: statusFieldValue === null || statusFieldValue === void 0 ? void 0 : statusFieldValue.value

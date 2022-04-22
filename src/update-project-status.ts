@@ -23,6 +23,13 @@ interface ProjectNextField {
 interface ProjectNextItem {
   id: string
   title: string
+  content:
+    | {
+        nodes: {
+          name: string
+        }[]
+      }
+    | Record<string, never>
   fieldValues: {
     nodes: ProjectNextFieldValue[]
   }
@@ -67,6 +74,12 @@ interface UpdateProjectNextItemFieldResponse {
 export async function updateProjectStatus(): Promise<void> {
   const projectUrl = core.getInput('project-url', {required: true})
   const ghToken = core.getInput('github-token', {required: true})
+  const labeled =
+    core
+      .getInput('labeled')
+      .split(',')
+      .map(l => l.trim())
+      .filter(l => l.length > 0) ?? []
   const status = core.getInput('status', {required: true}).trim()
   const octokit = github.getOctokit(ghToken)
   const urlMatch = projectUrl.match(urlParse)
@@ -104,6 +117,16 @@ export async function updateProjectStatus(): Promise<void> {
           items(first: 100) {
             nodes {
               id
+              content {
+                ... on Issue {
+                  labels(first: 50) {
+                    nodes {
+                      name
+                    }
+                  }
+
+                }
+              }
               fieldValues(first: 50) {
                 nodes {
                   id
@@ -130,7 +153,7 @@ export async function updateProjectStatus(): Promise<void> {
   const projectItemCount = idResp[ownerTypeQuery]?.projectNext.items.totalCount
   const projectItems = idResp[ownerTypeQuery]?.projectNext.items.nodes
   const statusField = idResp[ownerTypeQuery]?.projectNext.fields.nodes.find(field => field.name === 'Status')
-  const selectedStatusSetting = statusField
+  const selectedStatusSetting: {id: string; name: string} | undefined = statusField
     ? JSON.parse(statusField.settings)?.options.find((o: {id: string; name: string}) => o.name === status)
     : undefined
 
@@ -139,13 +162,21 @@ export async function updateProjectStatus(): Promise<void> {
   }
 
   const itemsToUpdate = projectItems
-    ? formatProjectItemsToUpdate({selectedStatusId: selectedStatusSetting.id, projectItems})
+    ? projectItemsToUpdate({selectedStatusId: selectedStatusSetting.id, projectItems, labeled})
     : []
 
   core.debug(`Project node ID: ${projectId}`)
   core.debug(`Project item count: ${projectItemCount}`)
   core.debug(`Project itemsToUpdate: ${JSON.stringify(itemsToUpdate)}`)
   core.debug(`selectedStatusSetting: ${JSON.stringify(selectedStatusSetting)}`)
+  core.debug(`labeled: ${JSON.stringify(labeled)}`)
+
+  if (itemsToUpdate.length > 0) {
+    core.debug(`${itemsToUpdate.length} item(s) selected for status update`)
+  } else {
+    core.debug(`No items selected for status update`)
+    return
+  }
 
   for (const itemToUpdate of itemsToUpdate) {
     await octokit.graphql<UpdateProjectNextItemFieldResponse>(
@@ -166,7 +197,7 @@ export async function updateProjectStatus(): Promise<void> {
       }
     )
 
-    core.debug(`${itemToUpdate.id} set to ${selectedStatusSetting}`)
+    core.debug(`${itemToUpdate.id} set to ${selectedStatusSetting.name}`)
   }
 }
 
@@ -180,19 +211,23 @@ export function mustGetOwnerTypeQuery(ownerType?: string): 'organization' | 'use
   return ownerTypeQuery
 }
 
-function formatProjectItemsToUpdate({
+function projectItemsToUpdate({
   projectItems,
-  selectedStatusId
+  selectedStatusId,
+  labeled
 }: {
   projectItems: ProjectNextItem[]
   selectedStatusId: string
+  labeled: string[]
 }) {
   const formattedData = []
 
   for (const projectItem of projectItems) {
     const statusFieldValue = projectItem.fieldValues.nodes.find(fieldValue => fieldValue.projectField.name === 'Status')
+    const labels = projectItem.content?.nodes.map(l => l.name)
+    const includesLabel = labeled.length > 0 ? labels.some(l => labeled.includes(l)) : true
 
-    if (statusFieldValue && statusFieldValue?.value !== selectedStatusId) {
+    if (includesLabel && statusFieldValue && statusFieldValue?.value !== selectedStatusId) {
       formattedData.push({
         id: projectItem.id,
         statusValue: statusFieldValue?.value
