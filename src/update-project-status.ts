@@ -227,7 +227,7 @@ function projectItemsToUpdate({
   for (const projectItem of projectItems) {
     const statusFieldValue = projectItem.fieldValues.nodes.find(fieldValue => fieldValue.projectField.name === 'Status')
     core.debug(`projectItem.content: ${JSON.stringify(projectItem.content)}`)
-    const labels = projectItem.content?.labels.nodes.map(l => l.name) || []
+    const labels = projectItem.content?.labels?.nodes.map(l => l.name) || []
     core.debug(`labels: ${JSON.stringify(labels)}`)
     const includesLabel = labeled.length > 0 && labels.length > 0 ? labels.some(l => labeled.includes(l)) : true
 
